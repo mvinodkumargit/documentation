@@ -1,0 +1,45 @@
+flowchart TD
+  subgraph Ingestion["DAM ingestion events"]
+    WIPVPI["Modified original under /wip/vpi"]
+    ProdOriginal["Modified original under /product/vpi or /product/samples"]
+    ProductMetadata["Product metadata update\nscene7Url + appliesToAllProducts"]
+    Scene7Complete["Product VPI/samples\nScene7 PublishComplete"]
+  end
+
+  WIPVPI -->|video or non-video| VPI["belk-vendor-provided-images"]
+  ProdOriginal --> AdobeDM["Adobe dynamic-media-reupload\nexternal model"]
+  ProductMetadata --> Save["belk-asset-metadata-save"]
+  Scene7Complete --> PostScene7["belk-post-scene7-urls-to-salsify"]
+
+  subgraph BelkModels["Other repository-defined Belk models"]
+    Samples["belk-sample-images"]
+    PostProcess["belk-post-processing-sample-vpi"]
+    Metadata["belk-metadata-asset-workflow"]
+    Batch["belk-batch-thumbnails-post-to-salsify-call"]
+    BatchUpload["belk-scene7-batch-upload"]
+    Cache["belk-scene7-cdn-cache-invalidation"]
+    TCS["belk-assign-to-tcs"]
+  end
+
+  Batch -. "configured InvokeWorkflowModel for eligible paths" .-> PostScene7
+  InvokerCode["InvokeWorkflowModel general path branches\n(code present; model wiring not shown)"]
+  InvokerCode -. "/product/final-assets" .-> PostProcess
+  InvokerCode -. "/wip/samples" .-> Samples
+  InvokerCode -. "other path" .-> VPI
+  InvokerCode -. "post-processing model ID + moved path;\nnot shown wired" .-> BatchUpload
+
+  VPI --> DAM["DAM metadata + dated VPI collection"]
+  DAM --> SalsifyLookup["Salsify product lookup"]
+  Samples --> SampleSideEffects["DAM move + sample collection\nSalsify/Workhorse update attempts"]
+  PostProcess --> RelatedAssets["DAM move + PSD/TIFF relations\nrelated metadata copy"]
+  Save --> SalsifyImage["Salsify NRF image URL update attempt"]
+  PostScene7 --> Scene7Effects["Salsify URL update + CDN invalidation\n+ conditional Workhorse update"]
+  BatchUpload --> AdobeUpload["Adobe Dynamic Media upload\n(external process)"]
+  Cache --> CDN["Scene7 CDN invalidation request"]
+  TCS --> TCSCollection["Add asset to configured TCS collection"]
+  Metadata --> MetadataOnly["Filename/Salsify metadata processing"]
+
+  ExternalStart["Manual/runtime/external start\nnot evidenced in repository"]
+  ExternalStart -.-> Metadata
+  ExternalStart -.-> Cache
+  ExternalStart -.-> TCS
