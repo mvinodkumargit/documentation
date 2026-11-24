@@ -1,0 +1,30 @@
+flowchart LR
+  subgraph Triggers["AEM triggers"]
+    Event["DAM event + launcher rules"]
+    Manual["Manual/external workflow start"]
+    Schedule["Scheduled job"]
+    AuthorUI["Author UI"]
+  end
+
+  Router["Explicit workflow routing"]
+  Orchestrator["AEM workflow orchestration"]
+  Operation["Application operations"]
+  RepoAdapter["DAM/JCR adapter"]
+  Integration["Integration ports"]
+  HTTP["Typed HTTP client\n(timeout, encoding, redaction, status)"]
+  Recovery["Idempotency + retry/recovery state"]
+  Observability["Correlation IDs + outcome metrics"]
+  Repo["JCR / DAM / collections"]
+  External["Salsify / Workhorse / Scene7"]
+  UIEndpoint["Async validated AEM operation"]
+
+  Event --> Router --> Orchestrator --> Operation
+  Manual --> Orchestrator
+  Schedule --> Operation
+  AuthorUI --> UIEndpoint --> Operation
+  Operation --> RepoAdapter --> Repo
+  Operation --> Integration --> HTTP --> External
+  Operation --> Recovery
+  Orchestrator --> Observability
+  Operation --> Observability
+  HTTP --> Observability

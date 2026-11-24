@@ -1,0 +1,53 @@
+flowchart TD
+  subgraph Product["Products"]
+    ProductOriginal["Modified original under product/vpi or product/samples"]
+    AdobeDM["Adobe Dynamic Media re-upload\n(no model steps in this repo)"]
+    ProductMeta["Metadata: scene7Url nonempty\nand appliesToAllProducts=true"]
+    SalsifySave["Salsify-on-asset-save"]
+    Scene7Complete["Product VPI/samples\nScene7 status = PublishComplete"]
+    PostScene7["Swatch metadata → Salsify\n→ CDN invalidation → Workhorse"]
+    ProductRoute["InvokeWorkflowModel payload contains\n/product/final-assets"]
+    PostProcess["Filename → Salsify metadata\n→ move by FOB → relate PSD/TIFF\n→ copy related metadata"]
+    NoProductShip["No product Dropship/Non-Dropship\nbranch found"]
+
+    ProductOriginal --> AdobeDM
+    ProductMeta --> SalsifySave
+    Scene7Complete --> PostScene7
+    ProductRoute --> PostProcess
+    PostProcess --> NoProductShip
+  end
+
+  subgraph WIP["WIP"]
+    VPIEvent["Modified original under wip/vpi"]
+    Mime["Video vs non-video MIME split"]
+    VendorModel["Vendor-provided-images model"]
+    Filename["Parse filename\n4- or 6-token patterns"]
+    BadName["Invalid filename"]
+    SalsifyMetadata["Salsify lookup → DAM metadata\nincluding directShipFlag"]
+    NoProduct["No Salsify product"]
+    ShipFlag{"directShipFlag"}
+    DropCollection["Dated VPI Dropship collection"]
+    NonDropCollection["Dated VPI Non-Dropship collection\n(null defaults false)"]
+    SampleRoute["InvokeWorkflowModel payload contains\n/wip/samples"]
+    SampleModel["Sample-images model"]
+    SampleStatus["Salsify e-commerce → Workhorse"]
+    FOB{"FOB available?"}
+    Uncat["Move to uncategorized\ncommit + terminate"]
+    Move["Move asset; store new path"]
+    SampleCollection["Dated sample collection\nset assetState=processed"]
+    NoSampleLauncher["No direct WIP-samples launcher\nfound in repo"]
+
+    VPIEvent --> Mime --> VendorModel --> Filename
+    Filename -->|valid| SalsifyMetadata
+    Filename -->|invalid| BadName --> Uncat
+    SalsifyMetadata -->|product found| ShipFlag
+    SalsifyMetadata -->|not found| NoProduct --> Uncat
+    ShipFlag -->|true| DropCollection
+    ShipFlag -->|false or null| NonDropCollection
+
+    SampleRoute --> SampleModel --> Filename
+    SalsifyMetadata --> SampleStatus --> FOB
+    FOB -->|missing| Uncat
+    FOB -->|present| Move --> SampleCollection
+    NoSampleLauncher -.-> SampleRoute
+  end

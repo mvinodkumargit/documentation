@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant DAM as AEM DAM
+  participant L as VPI launcher
+  participant W as Vendor-provided-images workflow
+  participant F as Filename extraction
+  participant M as DAM metadata update
+  participant C as Collection creation
+  participant S as Salsify service
+  participant R as JCR/DAM
+
+  DAM->>L: modified original rendition under VPI path
+  L->>L: evaluate MIME and excluded-event conditions
+  L->>W: start workflow when conditions match
+  W->>F: execute step 1
+  F->>R: derive/update metadata from filename
+  W->>M: execute step 2
+  M->>S: update product metadata
+  M->>R: commit repository changes
+  W->>C: execute step 3
+  C->>R: create/update DAM collection
+  W->>R: Adobe workflow completion step
