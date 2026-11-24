@@ -1,0 +1,38 @@
+flowchart LR
+  subgraph Author["AEM Author"]
+    DAM["DAM asset/metadata event"]
+    Launchers["5 Repo launchers"]
+    Models["Belk workflow models"]
+    Processes["Workflow process steps"]
+    Jobs["Asset/collection purge jobs"]
+    UI["Move To TCS author action"]
+    Predicate["multisearch predicate"]
+    Repo["JCR / DAM / collections"]
+    Queue["Sling job queue"]
+    Services["SalsifyApi / WorkhorseApi"]
+    HTTP["RestClient"]
+  end
+
+  subgraph External["External / Adobe-managed"]
+    Salsify["Salsify"]
+    Workhorse["Workhorse"]
+    Scene7["Scene7 / CDN"]
+    AdobeDM["Adobe Dynamic Media workflows"]
+    AdobeSteps["AEM workflow completion steps"]
+  end
+
+  DAM --> Launchers --> Models --> Processes
+  Processes --> Repo
+  Processes --> Services --> HTTP
+  HTTP --> Salsify
+  HTTP --> Workhorse
+  Processes --> Scene7
+  Launchers --> AdobeDM
+  Models --> AdobeSteps
+  Jobs --> Repo
+  Jobs -->|"enqueue cleanup jobs"| Queue
+  UI -->|"collection operation POST"| Repo
+  Predicate -->|"QueryBuilder / XPath"| Repo
+
+  Publish["Public request"] -. "separate delivery path" .-> Dispatcher["Apache Dispatcher"]
+  Dispatcher -.-> PublishAEM["AEM Publish"]
